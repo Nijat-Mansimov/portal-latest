@@ -1,0 +1,64 @@
+-- Portal database schema for MSSQL
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users' AND type = 'U')
+BEGIN
+  CREATE TABLE Users (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Username NVARCHAR(255) NOT NULL UNIQUE,
+    DisplayName NVARCHAR(255) NOT NULL,
+    Email NVARCHAR(255) NULL,
+    PasswordHash NVARCHAR(255) NULL,
+    IsAdmin BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    LastLoginAt DATETIME2 NULL
+  );
+END
+
+-- Add PasswordHash column if missing
+IF NOT EXISTS (
+  SELECT * FROM sys.columns
+  WHERE object_id = OBJECT_ID('Users')
+  AND name = 'PasswordHash'
+)
+BEGIN
+  ALTER TABLE Users ADD PasswordHash NVARCHAR(255) NULL;
+END
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Services' AND type = 'U')
+BEGIN
+  CREATE TABLE Services (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Title NVARCHAR(255) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    RedirectUrl NVARCHAR(1024) NOT NULL,
+    TutorialUrl NVARCHAR(1024) NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+  );
+END
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'News' AND type = 'U')
+BEGIN
+  CREATE TABLE News (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Title NVARCHAR(255) NOT NULL,
+    CoverImageUrl NVARCHAR(1024) NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    PublishDate DATETIME2 NOT NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+  );
+END
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'NewsRead' AND type = 'U')
+BEGIN
+  CREATE TABLE NewsRead (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id),
+    NewsId INT NOT NULL REFERENCES News(Id),
+    ReadAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT UQ_NewsRead_User_News UNIQUE (UserId, NewsId)
+  );
+END
